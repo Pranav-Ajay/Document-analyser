@@ -4,5 +4,29 @@
     <button>UPLOAD DOCUMENT</button>
     <div>Question bar
     <div><input><button>➡️</button></div></div>
+    <script>
+    function handleImage1(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const validTypes = ["image/jpeg", "image/png"];
+  if (!validTypes.includes(file.type)) {
+    alert("Please select JPG or PNG image.");
+    event.target.value = "";
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+  const imgData = e.target.result;
+
+
+   localStorage.setItem("profilePic", imgData);
+    
+  };
+
+  reader.readAsDataURL(file);
+}
+      </script>
   </body>
 </html>
