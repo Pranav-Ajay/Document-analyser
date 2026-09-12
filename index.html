@@ -1,11 +1,11 @@
 <html>
   <head></head>
   <body>
-    <button>UPLOAD DOCUMENT</button>
+    <button onclick=open()>UPLOAD DOCUMENT</button>
     <div>Question bar
     <div><input><button>➡️</button></div></div>
     <script>
-    function handleImage1(event) {
+    function open() {
   const file = event.target.files[0];
   if (!file) return;
 
