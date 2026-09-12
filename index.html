@@ -9,7 +9,7 @@
   const file = event.target.files[0];
   if (!file) return;
 
-  const validTypes = ["image/jpeg", "image/png"];
+  const validTypes = ["pdf"];
   if (!validTypes.includes(file.type)) {
     alert("Please select JPG or PNG image.");
     event.target.value = "";
