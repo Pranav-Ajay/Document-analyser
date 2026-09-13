@@ -1,6 +1,7 @@
-
+```html
 <!DOCTYPE html>
 <html>
+
 <head>
     <link rel="stylesheet" href="styles.css">
     <title>DocuGuard</title>
@@ -10,12 +11,19 @@
 
 <div class="a">
 
-    <h2>welcome to Docguard</h2>
+    <!-- Welcome heading -->
+    <h2>Welcome to DocuGuard</h2>
+
+
+    <!-- Document template -->
     <div class="document-card" id="documentCard">
 
-        <div class="document-icon">📄</div>
+        <div class="document-icon">
+            📄
+        </div>
 
         <div class="document-info">
+
             <div class="document-name" id="documentName">
                 document.pdf
             </div>
@@ -23,6 +31,7 @@
             <div class="document-type">
                 PDF Document
             </div>
+
         </div>
 
     </div>
@@ -31,7 +40,9 @@
     <!-- Chat bar -->
     <footer>
 
-        <button onclick="openFile()">UPLOAD DOCUMENT</button>
+        <button onclick="openFile()">
+            UPLOAD DOCUMENT
+        </button>
 
         <input
             type="file"
@@ -47,7 +58,9 @@
             placeholder="Ask a question..."
         >
 
-        <button class="x">➡️</button>
+        <button class="x">
+            ➡️
+        </button>
 
     </footer>
 
@@ -58,54 +71,71 @@
 
     // Open file selector
     function openFile() {
+
         document.getElementById("Input").click();
+
     }
 
 
     // Detect file selection
-    document.getElementById("Input").addEventListener("change", function(event) {
+    document.getElementById("Input").addEventListener(
+        "change",
+        function(event) {
 
-        const file = event.target.files[0];
+            const file = event.target.files[0];
 
-        if (!file) return;
+            if (!file) return;
 
 
-        // Check PDF
-        if (file.type !== "application/pdf") {
+            // Check PDF
+            if (file.type !== "application/pdf") {
 
-            alert("Please select a PDF file.");
-            event.target.value = "";
-            return;
+                alert("Please select a PDF file.");
+
+                event.target.value = "";
+
+                return;
+
+            }
+
+
+            // Get document card
+            const documentCard =
+                document.getElementById("documentCard");
+
+            const documentName =
+                document.getElementById("documentName");
+
+
+            // Display file name
+            documentName.textContent = file.name;
+
+
+            // Display document card
+            documentCard.style.display = "flex";
+
+
+            // Read PDF
+            const reader = new FileReader();
+
+            reader.onload = function(e) {
+
+                const documentData = e.target.result;
+
+                localStorage.setItem(
+                    "Document",
+                    documentData
+                );
+
+            };
+
+            reader.readAsDataURL(file);
 
         }
-
-
-        // Show document card
-        const documentCard = document.getElementById("documentCard");
-        const documentName = document.getElementById("documentName");
-
-        documentName.textContent = file.name;
-
-        documentCard.style.display = "flex";
-
-
-        // Read PDF
-        const reader = new FileReader();
-
-        reader.onload = function(e) {
-
-            const documentData = e.target.result;
-
-            localStorage.setItem("Document", documentData);
-
-        };
-
-        reader.readAsDataURL(file);
-
-    });
+    );
 
 </script>
 
 </body>
 </html>
-
+```
