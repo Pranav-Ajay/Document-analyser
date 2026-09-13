@@ -15,12 +15,13 @@ button{
   padding:30px;}
 
 div.a{
-  width:800px;
+  width:1000px;
+  heigth:800px;
   background-color:#F4F5F0;
   justify-content:center;
   align-items:center;
   display:flex;
-  heigth:600px;}
+  }
 
 
 input.b{
