@@ -18,4 +18,5 @@ div.a{
 
 input.b{
   width:200px;
-  border:none;}
+  border:none;
+  border-radius:40px;}
