@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html>
 <head>
@@ -7,10 +8,29 @@
 
 <body>
 
-        
 <div class="a">
 
-        <footer>
+    <!-- Document preview -->
+    <div class="document-card" id="documentCard">
+
+        <div class="document-icon">📄</div>
+
+        <div class="document-info">
+            <div class="document-name" id="documentName">
+                document.pdf
+            </div>
+
+            <div class="document-type">
+                PDF Document
+            </div>
+        </div>
+
+    </div>
+
+
+    <!-- Chat bar -->
+    <footer>
+
         <button onclick="openFile()">UPLOAD DOCUMENT</button>
 
         <input
@@ -19,56 +39,73 @@
             accept=".pdf,application/pdf"
             hidden
         >
-            <input class="b" type="text" id="question">
-            <button class="x">➡️</button>
-        </footer>
-    </div>
 
-</footer>
-    <script>
+        <input
+            class="b"
+            type="text"
+            id="question"
+            placeholder="Ask a question..."
+        >
 
-        // Open the file selector
-        function openFile() {
-            document.getElementById("Input").click();
+        <button class="x">➡️</button>
+
+    </footer>
+
+</div>
+
+
+<script>
+
+    // Open file selector
+    function openFile() {
+        document.getElementById("Input").click();
+    }
+
+
+    // Detect file selection
+    document.getElementById("Input").addEventListener("change", function(event) {
+
+        const file = event.target.files[0];
+
+        if (!file) return;
+
+
+        // Check PDF
+        if (file.type !== "application/pdf") {
+
+            alert("Please select a PDF file.");
+            event.target.value = "";
+            return;
+
         }
 
 
-        // Detect when a file is selected
-        document.getElementById("Input").addEventListener("change", function(event) {
+        // Show document card
+        const documentCard = document.getElementById("documentCard");
+        const documentName = document.getElementById("documentName");
 
-            const file = event.target.files[0];
+        documentName.textContent = file.name;
 
-            if (!file) return;
-
-
-            // Only allow PDF
-            if (file.type !== "application/pdf") {
-                alert("Please select a PDF file.");
-                event.target.value = "";
-                return;
-            }
+        documentCard.style.display = "flex";
 
 
-            // Read the PDF
-            const reader = new FileReader();
+        // Read PDF
+        const reader = new FileReader();
 
-            reader.onload = function(e) {
+        reader.onload = function(e) {
 
-                const documentData = e.target.result;
+            const documentData = e.target.result;
 
-                // Store PDF
-                localStorage.setItem("Document", documentData);
+            localStorage.setItem("Document", documentData);
 
-                alert("PDF uploaded successfully!");
+        };
 
-            };
+        reader.readAsDataURL(file);
 
-            reader.readAsDataURL(file);
+    });
 
-        });
-
-    </script>
+</script>
 
 </body>
 </html>
-
+```
