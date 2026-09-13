@@ -1,111 +1,123 @@
-body {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    padding: 50px;
-    background-color: #FFFAFA;
+```css
+body { 
+    display: flex; 
+    flex-direction: column; 
+    justify-content: center; 
+    align-items: center; 
+    padding: 50px; 
+    background-color: #FFFAFA; 
 }
 
 
-button {
-    background-color: #FFFAFA;
-    border-radius: 30px;
-    border: none;
-    padding: 30px;
-    cursor: pointer;
+button { 
+    background-color: #FFFAFA; 
+    border-radius: 30px; 
+    border: none; 
+    padding: 30px; 
+    cursor: pointer; 
 }
 
-h2{center:0;}
+
+/* Heading */
+
+h2 {
+    text-align: center;
+}
 
 
-div.a {
-    width: 1000px;
-    height: 650px;
-    background-color: #F4F5F0;
+/* Main container */
 
-    display: flex;
-    flex-direction: column;
+div.a { 
+    width: 1000px; 
+    height: 650px; 
+    background-color: #F4F5F0; 
 
-    justify-content: flex-end;
-    align-items: center;
-    gap:90px;
+    display: flex; 
+    flex-direction: column; 
 
-    padding: 30px;
-    box-sizing: border-box;
+    justify-content: flex-end; 
+    align-items: center; 
+
+    gap: 90px; 
+
+    padding: 30px; 
+    box-sizing: border-box; 
 }
 
 
 /* Document template */
 
-.document-card {
-    display: none;
+.document-card { 
+    display: none; 
 
-    width: 500px;
-    height: 90px;
+    width: 500px; 
+    height: 90px; 
 
-    background-color: #FFFAFA;
-    border-radius: 20px;
+    background-color: #FFFAFA; 
+    border-radius: 20px; 
 
-    align-items: center;
+    align-items: center; 
 
-    padding: 15px 25px;
-    box-sizing: border-box;
+    padding: 15px 25px; 
+    box-sizing: border-box; 
 
-    margin-bottom: 20px;
+    margin-bottom: 20px; 
 }
 
 
 /* PDF icon */
 
-.document-icon {
-    font-size: 40px;
-    margin-right: 20px;
+.document-icon { 
+    font-size: 40px; 
+    margin-right: 20px; 
 }
 
 
 /* Document information */
 
-.document-info {
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
+.document-info { 
+    display: flex; 
+    flex-direction: column; 
+    gap: 5px; 
 }
 
 
-.document-name {
-    font-size: 18px;
-    font-weight: bold;
+.document-name { 
+    font-size: 18px; 
+    font-weight: bold; 
 }
 
 
-.document-type {
-    font-size: 14px;
-    color: #777;
+.document-type { 
+    font-size: 14px; 
+    color: #777; 
 }
 
 
 /* Chat bar */
 
-footer {
-    display: flex;
-    align-items: center;
-    gap: 10px;
+footer { 
+    display: flex; 
+    align-items: center; 
+    gap: 10px; 
 }
 
 
-input.b {
-    padding: 10px;
+/* Question input */
 
-    width: 450px;
-    height: 30px;
+input.b { 
+    padding: 10px; 
+    width: 450px; 
+    height: 30px; 
 
-    border: none;
-    border-radius: 40px;
+    border: none; 
+    border-radius: 40px; 
 }
 
 
-button.x {
-    padding: 20px;
-}
+/* Send button */
 
+button.x { 
+    padding: 20px; 
+}
+```
