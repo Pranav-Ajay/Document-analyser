@@ -18,6 +18,8 @@ div.a{
   height:300px;
   width:800px;
   background-color:#FFFAFA;
+  justify-content:center;
+  align-items:center;
   display:flex;
   bottom:0;}
 
