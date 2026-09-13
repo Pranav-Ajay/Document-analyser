@@ -7,3 +7,7 @@ body{
   padding:50px;
   }
 
+button{
+  border-radius:30px;
+  border:none;}
+
