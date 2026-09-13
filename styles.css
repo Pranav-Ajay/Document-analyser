@@ -27,6 +27,7 @@ div.a {
 
     justify-content: flex-end;
     align-items: center;
+    gap:50px;
 
     padding: 30px;
     box-sizing: border-box;
