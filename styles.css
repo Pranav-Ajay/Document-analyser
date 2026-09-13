@@ -14,13 +14,13 @@ button{
   border:none;
   padding:30px;}
 
-footer.a{
+div.a{
   width:800px;
   background-color:#F4F5F0;
   justify-content:center;
   align-items:center;
   display:flex;
-  bottom:0;}
+  heigth:600px;}
 
 
 input.b{
