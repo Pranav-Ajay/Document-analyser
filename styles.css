@@ -12,3 +12,6 @@ button{
   border:none;
   padding:30px;}
 
+div.a{
+  display:flex;
+  bottom:0;}
