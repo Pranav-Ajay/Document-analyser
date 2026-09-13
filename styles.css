@@ -97,7 +97,7 @@ div.a {
 /* Chat bar */
 
 footer { 
-    display: flex; 
+    position:fixed; 
     align-items: center; 
     gap: 10px; 
 }
