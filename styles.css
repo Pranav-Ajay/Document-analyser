@@ -1,4 +1,4 @@
-```css
+
 body { 
     display: flex; 
     flex-direction: column; 
@@ -120,4 +120,4 @@ input.b {
 button.x { 
     padding: 20px; 
 }
-```
+
