@@ -1,12 +1,17 @@
 <html>
   <head></head>
   <body>
-    <button onclick="open()">UPLOAD DOCUMENT</button>
+    <li><button onclick="open("Input)">UPLOAD DOCUMENT</button>
+    <input type="file" id="Input" hidden></li>
     <div>Question bar
     <div><input><button>➡️</button></div></div>
     <script>
   
  function open(){ 
+document.getElementById("Input").addEventListener("change", document);
+
+  function document(event){
+   
   const file = event.target.files[0];
 
   if (!file) return;
