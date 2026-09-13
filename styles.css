@@ -5,7 +5,7 @@ body{
   align-items: center;
   gap:500px;
   padding:50px;
-  background-color:#F4F5F0;
+  background-color:#FFFAFA;
   }
 
 button{
@@ -16,7 +16,7 @@ button{
 
 footer.a{
   width:800px;
-  background-color:#FFFAFA;
+  background-color:#F4F5F0;
   justify-content:center;
   align-items:center;
   display:flex;
