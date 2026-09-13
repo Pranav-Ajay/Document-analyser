@@ -14,6 +14,7 @@ button{
   padding:30px;}
 
 div.a{
+  padding:100px;
   background-color:#FFFAFA;
   display:flex;
   bottom:0;}
