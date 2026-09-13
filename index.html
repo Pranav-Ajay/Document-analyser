@@ -1,45 +1,77 @@
+```html
+<!DOCTYPE html>
 <html>
-  <head></head>
-  <body>
-    <li><button onclick="open("Input)">UPLOAD DOCUMENT</button>
-    <input type="file" id="Input" hidden></li>
-    <div>Question bar
-    <div><input><button>➡️</button></div></div>
+<head>
+    <title>DocuGuard</title>
+</head>
+
+<body>
+
+    <li>
+        <button onclick="openFile()">UPLOAD DOCUMENT</button>
+
+        <input
+            type="file"
+            id="Input"
+            accept=".pdf,application/pdf"
+            hidden
+        >
+    </li>
+
+    <div>
+        Question bar
+
+        <div>
+            <input type="text" id="question">
+            <button>➡️</button>
+        </div>
+    </div>
+
+
     <script>
-  
- function open(){ 
-document.getElementById("Input").addEventListener("change", document);
 
-  function document(event){
-   
-  const file = event.target.files[0];
+        // Open the file selector
+        function openFile() {
+            document.getElementById("Input").click();
+        }
 
-  if (!file) return;
 
-  // Only allow PDF files
-  const validTypes = ["application/pdf"];
+        // Detect when a file is selected
+        document.getElementById("Input").addEventListener("change", function(event) {
 
-  if (!validTypes.includes(file.type)) {
-    alert("Please select a PDF file.");
-    event.target.value = "";
-    return;
-  }
+            const file = event.target.files[0];
 
-  const reader = new FileReader();
+            if (!file) return;
 
-  reader.onload = function(e) {
-    const documentData = e.target.result;
 
-    localStorage.setItem("Document", documentData);
+            // Only allow PDF
+            if (file.type !== "application/pdf") {
+                alert("Please select a PDF file.");
+                event.target.value = "";
+                return;
+            }
 
-    alert("PDF uploaded successfully!");
-  };
 
-  reader.readAsDataURL(file);
-}
-}
-```
+            // Read the PDF
+            const reader = new FileReader();
 
-      </script>
-  </body>
+            reader.onload = function(e) {
+
+                const documentData = e.target.result;
+
+                // Store PDF
+                localStorage.setItem("Document", documentData);
+
+                alert("PDF uploaded successfully!");
+
+            };
+
+            reader.readAsDataURL(file);
+
+        });
+
+    </script>
+
+</body>
 </html>
+```
