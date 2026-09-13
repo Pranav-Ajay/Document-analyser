@@ -23,7 +23,7 @@ div.a{
   bottom:0;}
 
 input.b{
-  length:300px;
-  height:100;
+  width:300px;
+  height:100px;
   border:none;
   border-radius:40px;}
