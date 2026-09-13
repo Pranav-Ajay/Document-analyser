@@ -5,28 +5,35 @@
     <div>Question bar
     <div><input><button>➡️</button></div></div>
     <script>
-    function open() {
+
+function open(event) {
   const file = event.target.files[0];
+
   if (!file) return;
 
-  const validTypes = ["pdf"];
+  // Only allow PDF files
+  const validTypes = ["application/pdf"];
+
   if (!validTypes.includes(file.type)) {
-    alert("Please select JPG or PNG image.");
+    alert("Please select a PDF file.");
     event.target.value = "";
     return;
   }
 
   const reader = new FileReader();
+
   reader.onload = function(e) {
-  const document = e.target.result;
+    const documentData = e.target.result;
 
+    localStorage.setItem("Document", documentData);
 
-   localStorage.setItem("Document", document);
-    
+    alert("PDF uploaded successfully!");
   };
 
   reader.readAsDataURL(file);
 }
+```
+
       </script>
   </body>
 </html>
