@@ -136,7 +136,7 @@ div.v{
     background-color: #FFFAFA; 
     display:flex;
     align-items:flex-start;
-    align-self:flex-end;
+    align-self:flex-start;
     padding:20px;}
 
 div.chat{
