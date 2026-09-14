@@ -65,7 +65,7 @@
             placeholder="Ask a question..."
         >
 
-        <button class="x">
+        <button class="x" onclick="execute()">
             ➡️
         </button>
 
@@ -140,10 +140,10 @@
 
         }
     );
-
-    let text1=document.getElementbyId("question").value
-    let space=document.getElementById("pi").innerHtml
-    space.innertext=text1
+    function execute(){
+        let text1 = document.getElementById("question").value;
+        let space = document.getElementById("pi").innerHTML;
+        space.innerText=text1}
 
 </script>
 
