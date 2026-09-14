@@ -122,8 +122,10 @@ button.x {
 }
 
 div.u{
+    height:100px;
+    width:200px;
     background-color: #FFFAFA; 
     didplay:flex;
-    right:0;
+    align-items:flex-end;
     padding:20px;}
     
