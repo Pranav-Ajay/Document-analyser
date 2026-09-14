@@ -122,22 +122,24 @@ button.x {
 }
 
 div.u{
+    border-radius:10px;
     height:100px;
     width:200px;
     background-color: #FFFAFA; 
     display:flex;
     align-items:flex-start;
     align-self:flex-end;
-    padding:20px;}
+    padding:40px;}
 
 div.v{
+    border-radius:10px;
     height:100px;
     width:200px;
     background-color: #FFFAFA; 
     display:flex;
     align-items:flex-start;
     align-self:flex-start;
-    padding:20px;}
+    padding:40px;}
 
 
     
