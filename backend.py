@@ -1,16 +1,36 @@
 import os
+import tempfile
+
 import torch
 from pypdf import PdfReader
 from transformers import BertTokenizerFast
+
+from flask import Flask, request, jsonify
+from flask_cors import CORS
+
 from compact_model_loader import load_compact_model
 
 
 # ============================================================
-# MODEL PATH
+# CONFIGURATION
 # ============================================================
 
-# All model files are in the same folder as backend.py
+# All model files are in the same folder as this backend.py
 MODEL_PATH = "."
+
+
+# ============================================================
+# FLASK APPLICATION
+# ============================================================
+
+app = Flask(__name__)
+
+# Allow the HTML frontend to communicate with this Python server
+CORS(app)
+
+
+# Limit uploaded PDF size to 20 MB
+app.config["MAX_CONTENT_LENGTH"] = 20 * 1024 * 1024
 
 
 # ============================================================
@@ -19,11 +39,22 @@ MODEL_PATH = "."
 
 print("Loading compact tokenizer...")
 
-tokenizer = BertTokenizerFast(
-    tokenizer_file=os.path.join(MODEL_PATH, "tokenizer.json")
-)
+try:
 
-print("Tokenizer loaded successfully.")
+    tokenizer = BertTokenizerFast(
+        tokenizer_file=os.path.join(
+            MODEL_PATH,
+            "tokenizer.json"
+        )
+    )
+
+    print("Tokenizer loaded successfully.")
+
+except Exception as e:
+
+    print("ERROR: Could not load tokenizer.")
+    print(e)
+    raise
 
 
 # ============================================================
@@ -32,9 +63,17 @@ print("Tokenizer loaded successfully.")
 
 print("Loading compact INT8 QA model...")
 
-model = load_compact_model(MODEL_PATH)
+try:
 
-print("Model loaded successfully.")
+    model = load_compact_model(MODEL_PATH)
+
+    print("Model loaded successfully.")
+
+except Exception as e:
+
+    print("ERROR: Could not load compact QA model.")
+    print(e)
+    raise
 
 
 # ============================================================
@@ -45,10 +84,21 @@ device = torch.device(
     "cuda" if torch.cuda.is_available() else "cpu"
 )
 
-model.to(device)
-model.eval()
-
 print("Using device:", device)
+
+
+try:
+
+    model.to(device)
+
+except Exception as e:
+
+    print("WARNING: Could not move model to selected device.")
+    print(e)
+    print("Using the model in its current device configuration.")
+
+
+model.eval()
 
 
 # ============================================================
@@ -57,8 +107,10 @@ print("Using device:", device)
 
 def read_pdf(pdf_path):
     """
-    Extract text from every page of the PDF.
-    Returns a list containing the text of each page.
+    Extract text from every page of a PDF.
+
+    Returns:
+        List of page texts.
     """
 
     reader = PdfReader(pdf_path)
@@ -67,12 +119,25 @@ def read_pdf(pdf_path):
 
     for page_number, page in enumerate(reader.pages):
 
-        text = page.extract_text()
+        try:
+
+            text = page.extract_text()
+
+        except Exception as e:
+
+            print(
+                f"Warning: Could not extract "
+                f"text from page {page_number + 1}: {e}"
+            )
+
+            continue
 
         if text:
+
             text = text.strip()
 
             if text:
+
                 pages.append(text)
 
     return pages
@@ -84,11 +149,11 @@ def read_pdf(pdf_path):
 
 def create_chunks(pages, words_per_chunk=250):
     """
-    Split each PDF page into smaller chunks.
+    Split PDF text into smaller chunks.
 
-    Each chunk stores:
-    - text
-    - original page number
+    Each chunk contains:
+        text
+        page number
     """
 
     chunks = []
@@ -97,9 +162,15 @@ def create_chunks(pages, words_per_chunk=250):
 
         words = page_text.split()
 
-        for i in range(0, len(words), words_per_chunk):
+        for i in range(
+            0,
+            len(words),
+            words_per_chunk
+        ):
 
-            chunk_words = words[i:i + words_per_chunk]
+            chunk_words = words[
+                i:i + words_per_chunk
+            ]
 
             if chunk_words:
 
@@ -118,7 +189,15 @@ def create_chunks(pages, words_per_chunk=250):
 def answer_from_chunk(question, context):
     """
     Run the trained BERT QA model on one document chunk.
+
+    Returns:
+        answer
+        confidence
     """
+
+    # --------------------------------------------------------
+    # Tokenize question + document context
+    # --------------------------------------------------------
 
     inputs = tokenizer(
         question,
@@ -130,81 +209,179 @@ def answer_from_chunk(question, context):
         return_offsets_mapping=True
     )
 
-    # Character offsets are needed to convert
-    # token positions back into actual text.
-    offset_mapping = inputs["offset_mapping"][0]
 
-    # Identify which tokens belong to the context.
+    # --------------------------------------------------------
+    # Character offsets
+    # --------------------------------------------------------
+
+    offset_mapping = inputs[
+        "offset_mapping"
+    ][0]
+
+
+    # --------------------------------------------------------
+    # Identify question/context tokens
+    # --------------------------------------------------------
+
     sequence_ids = inputs.sequence_ids(0)
 
-    # Remove offset_mapping before sending inputs to the model.
+
+    # --------------------------------------------------------
+    # Prepare model inputs
+    # --------------------------------------------------------
+
     model_inputs = {
         key: value.to(device)
         for key, value in inputs.items()
         if key != "offset_mapping"
     }
 
-    # Run inference
+
+    # --------------------------------------------------------
+    # Model inference
+    # --------------------------------------------------------
+
     with torch.no_grad():
 
-        outputs = model(**model_inputs)
+        outputs = model(
+            **model_inputs
+        )
+
+
+    # --------------------------------------------------------
+    # Get start/end logits
+    # --------------------------------------------------------
 
     start_logits = outputs.start_logits[0]
+
     end_logits = outputs.end_logits[0]
 
-    # Find tokens belonging to the document context.
+
+    # --------------------------------------------------------
+    # Find context token positions
+    # --------------------------------------------------------
+
     context_positions = [
         i
         for i, sequence_id in enumerate(sequence_ids)
         if sequence_id == 1
     ]
 
+
     if not context_positions:
+
         return "", 0.0
 
-    # Get start and end scores only from context tokens.
-    start_scores = start_logits[context_positions]
-    end_scores = end_logits[context_positions]
 
-    # Find highest scoring start and end positions.
-    best_start_index = torch.argmax(start_scores).item()
-    best_end_index = torch.argmax(end_scores).item()
+    # --------------------------------------------------------
+    # Get scores only for context
+    # --------------------------------------------------------
 
-    start_position = context_positions[best_start_index]
-    end_position = context_positions[best_end_index]
+    start_scores = start_logits[
+        context_positions
+    ]
 
-    # Invalid span
+    end_scores = end_logits[
+        context_positions
+    ]
+
+
+    # --------------------------------------------------------
+    # Find highest scoring start/end tokens
+    # --------------------------------------------------------
+
+    best_start_index = torch.argmax(
+        start_scores
+    ).item()
+
+    best_end_index = torch.argmax(
+        end_scores
+    ).item()
+
+
+    start_position = context_positions[
+        best_start_index
+    ]
+
+    end_position = context_positions[
+        best_end_index
+    ]
+
+
+    # --------------------------------------------------------
+    # Check answer span
+    # --------------------------------------------------------
+
     if end_position < start_position:
+
         return "", 0.0
 
-    # Limit maximum answer length.
+
+    # Prevent excessively long answers
     if end_position - start_position > 30:
+
         end_position = start_position + 30
 
-    # Convert token positions to character positions.
-    start_char = offset_mapping[start_position][0].item()
-    end_char = offset_mapping[end_position][1].item()
 
-    if start_char >= end_char:
+    # Make sure end position is valid
+    if end_position >= len(offset_mapping):
+
         return "", 0.0
 
-    # Extract answer from the original context.
-    answer = context[start_char:end_char].strip()
 
-    # Calculate confidence.
+    # --------------------------------------------------------
+    # Convert token positions to character positions
+    # --------------------------------------------------------
+
+    start_char = offset_mapping[
+        start_position
+    ][0].item()
+
+    end_char = offset_mapping[
+        end_position
+    ][1].item()
+
+
+    if start_char >= end_char:
+
+        return "", 0.0
+
+
+    # --------------------------------------------------------
+    # Extract answer from context
+    # --------------------------------------------------------
+
+    answer = context[
+        start_char:end_char
+    ].strip()
+
+
+    if not answer:
+
+        return "", 0.0
+
+
+    # --------------------------------------------------------
+    # Calculate confidence
+    # --------------------------------------------------------
+
     start_probability = torch.softmax(
         start_logits[context_positions],
         dim=0
     )[best_start_index].item()
+
 
     end_probability = torch.softmax(
         end_logits[context_positions],
         dim=0
     )[best_end_index].item()
 
+
     confidence = (
-        start_probability + end_probability
+        start_probability +
+        end_probability
     ) / 2
+
 
     return answer, confidence
 
@@ -215,48 +392,103 @@ def answer_from_chunk(question, context):
 
 def process_document(pdf_path, question):
     """
-    Read the PDF, split it into chunks,
-    run QA on every chunk,
-    and return the best answer.
+    Read PDF, split into chunks, run BERT QA
+    on every chunk, and return the best answer.
     """
 
     print("\nReading PDF...")
 
     pages = read_pdf(pdf_path)
 
+
     if not pages:
+
         return "", 0.0, None
 
-    print("Pages extracted:", len(pages))
 
+    print(
+        "Pages extracted:",
+        len(pages)
+    )
+
+
+    # --------------------------------------------------------
     # Create chunks
-    chunks = create_chunks(pages)
+    # --------------------------------------------------------
 
-    print("Document chunks:", len(chunks))
+    chunks = create_chunks(
+        pages,
+        words_per_chunk=250
+    )
+
+
+    print(
+        "Document chunks:",
+        len(chunks)
+    )
+
+
+    if not chunks:
+
+        return "", 0.0, None
+
+
+    # --------------------------------------------------------
+    # Store best answer
+    # --------------------------------------------------------
 
     best_answer = ""
+
     best_confidence = 0.0
+
     best_page = None
 
+
+    # --------------------------------------------------------
     # Process every chunk
+    # --------------------------------------------------------
+
     for i, chunk_data in enumerate(chunks):
 
-        answer, confidence = answer_from_chunk(
-            question,
-            chunk_data["text"]
+        print(
+            f"Processing chunk "
+            f"{i + 1}/{len(chunks)}..."
         )
 
-        # Keep the answer with the highest confidence.
-        if answer and confidence > best_confidence:
+
+        try:
+
+            answer, confidence = answer_from_chunk(
+                question,
+                chunk_data["text"]
+            )
+
+        except Exception as e:
+
+            print(
+                f"Error processing chunk "
+                f"{i + 1}: {e}"
+            )
+
+            continue
+
+
+        # ----------------------------------------------------
+        # Keep highest-confidence answer
+        # ----------------------------------------------------
+
+        if (
+            answer
+            and
+            confidence > best_confidence
+        ):
 
             best_answer = answer
+
             best_confidence = confidence
+
             best_page = chunk_data["page"]
 
-        print(
-            f"Processed chunk "
-            f"{i + 1}/{len(chunks)}"
-        )
 
     return (
         best_answer,
@@ -264,157 +496,243 @@ def process_document(pdf_path, question):
         best_page
     )
 
-@app.route("/ask", methods=["POST"])
+
+# ============================================================
+# API: ASK QUESTION
+# ============================================================
+
+@app.route(
+    "/ask",
+    methods=["POST"]
+)
 def ask_question():
 
+    print("\n" + "=" * 60)
+
+    print("Received request from frontend.")
+
+
+    # --------------------------------------------------------
+    # Check PDF
+    # --------------------------------------------------------
+
     if "pdf" not in request.files:
+
         return jsonify({
             "error": "No PDF file uploaded."
         }), 400
 
+
     pdf_file = request.files["pdf"]
 
-    question = request.form.get("question", "").strip()
+
+    # --------------------------------------------------------
+    # Check question
+    # --------------------------------------------------------
+
+    question = request.form.get(
+        "question",
+        ""
+    ).strip()
+
 
     if not question:
+
         return jsonify({
             "error": "No question provided."
         }), 400
 
-    if pdf_file.filename == "":
+
+    # --------------------------------------------------------
+    # Check filename
+    # --------------------------------------------------------
+
+    if not pdf_file.filename:
+
         return jsonify({
             "error": "No PDF selected."
         }), 400
 
-    # Save uploaded PDF temporarily
-    pdf_path = "uploaded_document.pdf"
-    pdf_file.save(pdf_path)
+
+    # --------------------------------------------------------
+    # Check extension
+    # --------------------------------------------------------
+
+    filename = pdf_file.filename.lower()
+
+
+    if not filename.endswith(".pdf"):
+
+        return jsonify({
+            "error": "Only PDF files are supported."
+        }), 400
+
+
+    # --------------------------------------------------------
+    # Create temporary PDF
+    # --------------------------------------------------------
+
+    temporary_file = None
 
     try:
 
-        answer, confidence, page = process_document(
-            pdf_path,
+        with tempfile.NamedTemporaryFile(
+            delete=False,
+            suffix=".pdf"
+        ) as temp:
+
+            pdf_file.save(
+                temp.name
+            )
+
+            temporary_file = temp.name
+
+
+        print(
+            "PDF received:",
+            pdf_file.filename
+        )
+
+        print(
+            "Question:",
             question
         )
 
-        return jsonify({
-            "answer": answer if answer else "No relevant answer found.",
-            "confidence": round(confidence, 4),
+
+        # ----------------------------------------------------
+        # Run document QA
+        # ----------------------------------------------------
+
+        answer, confidence, page = process_document(
+            temporary_file,
+            question
+        )
+
+
+        # ----------------------------------------------------
+        # Prepare response
+        # ----------------------------------------------------
+
+        if not answer:
+
+            answer = "No relevant answer found."
+
+
+        response_data = {
+            "answer": answer,
+            "confidence": round(
+                confidence,
+                4
+            ),
             "page": page
-        })
+        }
+
+
+        print("\nAnswer:", answer)
+
+        print(
+            "Confidence:",
+            round(confidence, 4)
+        )
+
+        print(
+            "Page:",
+            page
+        )
+
+
+        print("=" * 60)
+
+
+        # ----------------------------------------------------
+        # Send JSON back to HTML
+        # ----------------------------------------------------
+
+        return jsonify(response_data)
+
 
     except Exception as e:
+
+        print("\nERROR while processing document:")
+
+        print(e)
+
+        print("=" * 60)
+
 
         return jsonify({
             "error": str(e)
         }), 500
 
-    finally:
-
-        # Delete temporary PDF
-        if os.path.exists(pdf_path):
-            os.remove(pdf_path)@app.route("/ask", methods=["POST"])
-def ask_question():
-
-    if "pdf" not in request.files:
-        return jsonify({
-            "error": "No PDF file uploaded."
-        }), 400
-
-    pdf_file = request.files["pdf"]
-
-    question = request.form.get("question", "").strip()
-
-    if not question:
-        return jsonify({
-            "error": "No question provided."
-        }), 400
-
-    if pdf_file.filename == "":
-        return jsonify({
-            "error": "No PDF selected."
-        }), 400
-
-    # Save uploaded PDF temporarily
-    pdf_path = "uploaded_document.pdf"
-    pdf_file.save(pdf_path)
-
-    try:
-
-        answer, confidence, page = process_document(
-            pdf_path,
-            question
-        )
-
-        return jsonify({
-            "answer": answer if answer else "No relevant answer found.",
-            "confidence": round(confidence, 4),
-            "page": page
-        })
-
-    except Exception as e:
-
-        return jsonify({
-            "error": str(e)
-        }), 500
 
     finally:
 
+        # ----------------------------------------------------
         # Delete temporary PDF
-        if os.path.exists(pdf_path):
-            os.remove(pdf_path)
+        # ----------------------------------------------------
+
+        if (
+            temporary_file
+            and
+            os.path.exists(temporary_file)
+        ):
+
+            try:
+
+                os.remove(
+                    temporary_file
+                )
+
+            except Exception as e:
+
+                print(
+                    "Warning: Could not delete "
+                    "temporary PDF:",
+                    e
+                )
 
 
 # ============================================================
-# MAIN PROGRAM
+# ERROR HANDLER: FILE TOO LARGE
+# ============================================================
+
+@app.errorhandler(413)
+def file_too_large(error):
+
+    return jsonify({
+        "error":
+        "The uploaded PDF is too large. "
+        "Maximum size is 20 MB."
+    }), 413
+
+
+# ============================================================
+# START SERVER
 # ============================================================
 
 if __name__ == "__main__":
 
-    # Test PDF
-    PDF_PATH = "test_legal_document.pdf"
+    print("\n" + "=" * 60)
 
-    # Ask user for a question
-    question = input(
-        "\nEnter your question: "
+    print("DocuGuard Backend")
+
+    print("=" * 60)
+
+    print("Server starting...")
+
+    print(
+        "Frontend should connect to:"
     )
 
-    # Check whether PDF exists
-    if not os.path.exists(PDF_PATH):
+    print(
+        "http://127.0.0.1:5000/ask"
+    )
 
-        print("\nERROR:")
-        print("PDF file not found.")
-        print(
-            "Make sure test_legal_document.pdf "
-            "is in the same folder as backend.py."
-        )
+    print("=" * 60 + "\n")
 
-    else:
 
-        # Process document
-        answer, confidence, page = process_document(
-            PDF_PATH,
-            question
-        )
-
-        # Display results
-        print("\n" + "=" * 60)
-
-        print("QUESTION:")
-        print(question)
-
-        print("\nANSWER:")
-
-        if answer:
-            print(answer)
-        else:
-            print("No relevant answer found.")
-
-        print("\nCONFIDENCE:")
-        print(f"{confidence:.4f}")
-
-        if page:
-            print("\nPAGE:")
-            print(page)
-
-        print("=" * 60)
+    app.run(
+        host="127.0.0.1",
+        port=5000,
+        debug=True
+    )
