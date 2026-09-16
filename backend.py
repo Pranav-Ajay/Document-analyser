@@ -4,7 +4,7 @@ from pypdf import PdfReader
 from transformers import BertTokenizerFast
 from compact_model_loader import load_compact_model
 
-MODEL_PATH = "./compressed_model"
+MODEL_PATH = "compressed_model"
 
 print("Loading compact tokenizer...")
 tokenizer = BertTokenizerFast(
