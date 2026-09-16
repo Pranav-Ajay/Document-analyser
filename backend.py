@@ -264,6 +264,106 @@ def process_document(pdf_path, question):
         best_page
     )
 
+@app.route("/ask", methods=["POST"])
+def ask_question():
+
+    if "pdf" not in request.files:
+        return jsonify({
+            "error": "No PDF file uploaded."
+        }), 400
+
+    pdf_file = request.files["pdf"]
+
+    question = request.form.get("question", "").strip()
+
+    if not question:
+        return jsonify({
+            "error": "No question provided."
+        }), 400
+
+    if pdf_file.filename == "":
+        return jsonify({
+            "error": "No PDF selected."
+        }), 400
+
+    # Save uploaded PDF temporarily
+    pdf_path = "uploaded_document.pdf"
+    pdf_file.save(pdf_path)
+
+    try:
+
+        answer, confidence, page = process_document(
+            pdf_path,
+            question
+        )
+
+        return jsonify({
+            "answer": answer if answer else "No relevant answer found.",
+            "confidence": round(confidence, 4),
+            "page": page
+        })
+
+    except Exception as e:
+
+        return jsonify({
+            "error": str(e)
+        }), 500
+
+    finally:
+
+        # Delete temporary PDF
+        if os.path.exists(pdf_path):
+            os.remove(pdf_path)@app.route("/ask", methods=["POST"])
+def ask_question():
+
+    if "pdf" not in request.files:
+        return jsonify({
+            "error": "No PDF file uploaded."
+        }), 400
+
+    pdf_file = request.files["pdf"]
+
+    question = request.form.get("question", "").strip()
+
+    if not question:
+        return jsonify({
+            "error": "No question provided."
+        }), 400
+
+    if pdf_file.filename == "":
+        return jsonify({
+            "error": "No PDF selected."
+        }), 400
+
+    # Save uploaded PDF temporarily
+    pdf_path = "uploaded_document.pdf"
+    pdf_file.save(pdf_path)
+
+    try:
+
+        answer, confidence, page = process_document(
+            pdf_path,
+            question
+        )
+
+        return jsonify({
+            "answer": answer if answer else "No relevant answer found.",
+            "confidence": round(confidence, 4),
+            "page": page
+        })
+
+    except Exception as e:
+
+        return jsonify({
+            "error": str(e)
+        }), 500
+
+    finally:
+
+        # Delete temporary PDF
+        if os.path.exists(pdf_path):
+            os.remove(pdf_path)
+
 
 # ============================================================
 # MAIN PROGRAM
