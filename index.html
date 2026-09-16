@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html>
 
@@ -8,18 +7,15 @@
 </head>
 
 <body>
+
 <h2>Welcome to DocuGuard</h2>
 
 <div class="a">
 
-    <!-- Welcome heading -->
-   
-
-
     <!-- Document template -->
     <div class="document-card" id="documentCard">
 
-        <div class="document-icon" contenteditable="true" data-placeholder="Please upload your document before asking">
+        <div class="document-icon">
             📄
         </div>
 
@@ -37,11 +33,13 @@
 
     </div>
 
-    <div class="u" id="pi">
-    </div>
-    <div class="v">
-    </div>
-   
+
+    <!-- User question area -->
+    <div class="u" id="pi"></div>
+
+
+    <!-- Answer area -->
+    <div class="v" id="answerArea"></div>
 
 
     <!-- Chat bar -->
@@ -76,7 +74,17 @@
 
 <script>
 
-    // Open file selector
+    // =========================================================
+    // STORE THE ACTUAL UPLOADED PDF FILE
+    // =========================================================
+
+    let selectedFile = null;
+
+
+    // =========================================================
+    // OPEN FILE SELECTOR
+    // =========================================================
+
     function openFile() {
 
         document.getElementById("Input").click();
@@ -84,26 +92,39 @@
     }
 
 
-    // Detect file selection
+    // =========================================================
+    // DETECT FILE SELECTION
+    // =========================================================
+
     document.getElementById("Input").addEventListener(
         "change",
         function(event) {
 
             const file = event.target.files[0];
 
-            if (!file) return;
+            if (!file) {
+                return;
+            }
 
 
-            // Check PDF
-            if (file.type !== "application/pdf") {
+            // Check that the file is a PDF
+            const isPDF =
+                file.type === "application/pdf" ||
+                file.name.toLowerCase().endsWith(".pdf");
+
+
+            if (!isPDF) {
 
                 alert("Please select a PDF file.");
 
                 event.target.value = "";
 
                 return;
-
             }
+
+
+            // Store the actual File object
+            selectedFile = file;
 
 
             // Get document card
@@ -122,16 +143,20 @@
             documentCard.style.display = "flex";
 
 
-            // Read PDF
+            // Enable question input
+            document.getElementById("question").placeholder =
+                "Ask a question about your document";
+
+
+            // Optional: store a copy in localStorage
+            // This is NOT used for sending to Python.
             const reader = new FileReader();
 
             reader.onload = function(e) {
 
-                const documentData = e.target.result;
-
                 localStorage.setItem(
                     "Document",
-                    documentData
+                    e.target.result
                 );
 
             };
@@ -140,13 +165,146 @@
 
         }
     );
-    function execute(){
-        let text1 = document.getElementById("question").value;
-        let space = document.getElementById("pi");
-        space.innerText=text1;}
+
+
+    // =========================================================
+    // SEND QUESTION + PDF TO PYTHON BACKEND
+    // =========================================================
+
+    async function execute() {
+
+        // Get question
+        const questionInput =
+            document.getElementById("question");
+
+        const question =
+            questionInput.value.trim();
+
+
+        // Check PDF
+        if (!selectedFile) {
+
+            alert("Please upload your document first.");
+
+            return;
+        }
+
+
+        // Check question
+        if (!question) {
+
+            alert("Please enter a question.");
+
+            return;
+        }
+
+
+        // Display user's question
+        const questionArea =
+            document.getElementById("pi");
+
+        questionArea.innerText = question;
+
+
+        // Display processing message
+        const answerArea =
+            document.getElementById("answerArea");
+
+        answerArea.innerText =
+            "Processing your document...";
+
+
+        // =====================================================
+        // CREATE FORM DATA
+        // =====================================================
+
+        const formData = new FormData();
+
+        formData.append(
+            "pdf",
+            selectedFile
+        );
+
+        formData.append(
+            "question",
+            question
+        );
+
+
+        // =====================================================
+        // SEND TO PYTHON
+        // =====================================================
+
+        try {
+
+            const response = await fetch(
+                "http://127.0.0.1:5000/ask",
+                {
+                    method: "POST",
+                    body: formData
+                }
+            );
+
+
+            // Convert Python response to JSON
+            const data = await response.json();
+
+
+            // Check for backend error
+            if (!response.ok) {
+
+                throw new Error(
+                    data.error ||
+                    "Backend error occurred."
+                );
+
+            }
+
+
+            // =================================================
+            // DISPLAY ANSWER
+            // =================================================
+
+            answerArea.innerText =
+                data.answer;
+
+
+            // Optional: display confidence and page
+            if (data.page !== null) {
+
+                answerArea.innerText +=
+                    "\n\nPage: " +
+                    data.page;
+
+            }
+
+
+            if (data.confidence !== undefined) {
+
+                answerArea.innerText +=
+                    "\nConfidence: " +
+                    data.confidence;
+
+            }
+
+
+            // Clear question box
+            questionInput.value = "";
+
+
+        } catch (error) {
+
+            console.error(error);
+
+            answerArea.innerText =
+                "Error connecting to the Python backend.\n\n" +
+                error.message;
+
+        }
+
+    }
 
 </script>
 
 </body>
 </html>
-
