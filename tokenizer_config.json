@@ -1,0 +1,5 @@
+{
+  "do_lower_case": true,
+  "model_type": "bert",
+  "tokenizer_class": "BertTokenizerFast"
+}
