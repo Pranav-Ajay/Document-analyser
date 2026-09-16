@@ -12,7 +12,7 @@
 
 <div class="a">
 
-    <!-- Document template -->
+    <!-- Document card -->
     <div class="document-card" id="documentCard">
 
         <div class="document-icon">
@@ -34,12 +34,12 @@
     </div>
 
 
-    <!-- User question area -->
+    <!-- User question -->
     <div class="u" id="pi"></div>
 
 
-    <!-- Answer area -->
-    <div class="v" id="answerArea"></div>
+    <!-- AI answer -->
+    <div class="v" id="answer"></div>
 
 
     <!-- Chat bar -->
@@ -74,16 +74,13 @@
 
 <script>
 
-    // =========================================================
-    // STORE THE ACTUAL UPLOADED PDF FILE
-    // =========================================================
-
+    // Store the selected PDF
     let selectedFile = null;
 
 
-    // =========================================================
+    // -----------------------------------------
     // OPEN FILE SELECTOR
-    // =========================================================
+    // -----------------------------------------
 
     function openFile() {
 
@@ -92,9 +89,9 @@
     }
 
 
-    // =========================================================
-    // DETECT FILE SELECTION
-    // =========================================================
+    // -----------------------------------------
+    // WHEN PDF IS SELECTED
+    // -----------------------------------------
 
     document.getElementById("Input").addEventListener(
         "change",
@@ -107,13 +104,11 @@
             }
 
 
-            // Check that the file is a PDF
-            const isPDF =
-                file.type === "application/pdf" ||
-                file.name.toLowerCase().endsWith(".pdf");
-
-
-            if (!isPDF) {
+            // Check PDF
+            if (
+                file.type !== "application/pdf" &&
+                !file.name.toLowerCase().endsWith(".pdf")
+            ) {
 
                 alert("Please select a PDF file.");
 
@@ -123,55 +118,55 @@
             }
 
 
-            // Store the actual File object
+            // Save selected PDF
             selectedFile = file;
 
 
-            // Get document card
+            // Get document elements
             const documentCard =
                 document.getElementById("documentCard");
 
             const documentName =
                 document.getElementById("documentName");
 
+            const questionInput =
+                document.getElementById("question");
 
-            // Display file name
+
+            // Display filename
             documentName.textContent = file.name;
 
 
-            // Display document card
+            // Show document card
             documentCard.style.display = "flex";
 
 
             // Enable question input
-            document.getElementById("question").placeholder =
+            questionInput.placeholder =
                 "Ask a question about your document";
 
 
-            // Optional: store a copy in localStorage
-            // This is NOT used for sending to Python.
-            const reader = new FileReader();
-
-            reader.onload = function(e) {
-
-                localStorage.setItem(
-                    "Document",
-                    e.target.result
-                );
-
-            };
-
-            reader.readAsDataURL(file);
+            console.log("PDF selected:", file.name);
 
         }
     );
 
 
-    // =========================================================
-    // SEND QUESTION + PDF TO PYTHON BACKEND
-    // =========================================================
+    // -----------------------------------------
+    // SEND QUESTION TO PYTHON BACKEND
+    // -----------------------------------------
 
     async function execute() {
+
+        // Check whether a PDF was selected
+        if (!selectedFile) {
+
+            alert("Please upload your document first.");
+
+            return;
+
+        }
+
 
         // Get question
         const questionInput =
@@ -181,21 +176,13 @@
             questionInput.value.trim();
 
 
-        // Check PDF
-        if (!selectedFile) {
-
-            alert("Please upload your document first.");
-
-            return;
-        }
-
-
         // Check question
         if (!question) {
 
             alert("Please enter a question.");
 
             return;
+
         }
 
 
@@ -206,36 +193,38 @@
         questionArea.innerText = question;
 
 
-        // Display processing message
+        // Get answer area
         const answerArea =
-            document.getElementById("answerArea");
+            document.getElementById("answer");
 
+
+        // Show processing message
         answerArea.innerText =
             "Processing your document...";
 
 
-        // =====================================================
-        // CREATE FORM DATA
-        // =====================================================
-
-        const formData = new FormData();
-
-        formData.append(
-            "pdf",
-            selectedFile
-        );
-
-        formData.append(
-            "question",
-            question
-        );
-
-
-        // =====================================================
-        // SEND TO PYTHON
-        // =====================================================
-
         try {
+
+            // -----------------------------------------
+            // CREATE FORM DATA
+            // -----------------------------------------
+
+            const formData = new FormData();
+
+            formData.append(
+                "file",
+                selectedFile
+            );
+
+            formData.append(
+                "question",
+                question
+            );
+
+
+            // -----------------------------------------
+            // SEND TO FLASK
+            // -----------------------------------------
 
             const response = await fetch(
                 "http://127.0.0.1:5000/ask",
@@ -246,63 +235,91 @@
             );
 
 
-            // Convert Python response to JSON
-            const data = await response.json();
-
-
-            // Check for backend error
+            // Check HTTP response
             if (!response.ok) {
 
                 throw new Error(
-                    data.error ||
-                    "Backend error occurred."
+                    "Backend returned HTTP " + response.status
                 );
 
             }
 
 
-            // =================================================
+            // Convert response to JSON
+            const data = await response.json();
+
+
+            // -----------------------------------------
             // DISPLAY ANSWER
-            // =================================================
+            // -----------------------------------------
 
-            answerArea.innerText =
-                data.answer;
+            if (data.answer) {
+
+                answerArea.innerText =
+                    data.answer;
+
+            }
+            else {
+
+                answerArea.innerText =
+                    "No relevant answer found.";
+
+            }
 
 
-            // Optional: display confidence and page
-            if (data.page !== null) {
+            // Optional: show confidence
+            if (data.confidence !== undefined) {
 
                 answerArea.innerText +=
-                    "\n\nPage: " +
+                    "\n\nConfidence: " +
+                    Number(data.confidence).toFixed(4);
+
+            }
+
+
+            // Optional: show page number
+            if (data.page) {
+
+                answerArea.innerText +=
+                    "\nPage: " +
                     data.page;
 
             }
 
-
-            if (data.confidence !== undefined) {
-
-                answerArea.innerText +=
-                    "\nConfidence: " +
-                    data.confidence;
-
-            }
-
-
-            // Clear question box
-            questionInput.value = "";
-
-
-        } catch (error) {
+        }
+        catch (error) {
 
             console.error(error);
 
             answerArea.innerText =
-                "Error connecting to the Python backend.\n\n" +
-                error.message;
+                "Could not connect to the backend.";
+
+            alert(
+                "Could not connect to the Python backend.\n\n" +
+                "Make sure backend.py is running in VS Code."
+            );
 
         }
 
     }
+
+
+    // -----------------------------------------
+    // PRESS ENTER TO ASK
+    // -----------------------------------------
+
+    document.getElementById("question").addEventListener(
+        "keydown",
+        function(event) {
+
+            if (event.key === "Enter") {
+
+                execute();
+
+            }
+
+        }
+    );
 
 </script>
 
